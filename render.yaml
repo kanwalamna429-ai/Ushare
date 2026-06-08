@@ -2,7 +2,6 @@ services:
   - type: web
     name: ushare-api
     runtime: node
-    region: oregon
     plan: free
     buildCommand: npm install -g pnpm && pnpm install --frozen-lockfile && pnpm --filter @workspace/api-server run build
     startCommand: node --enable-source-maps artifacts/api-server/dist/index.mjs
@@ -25,7 +24,6 @@ services:
   - type: web
     name: ushare-frontend
     runtime: static
-    region: oregon
     plan: free
     buildCommand: npm install -g pnpm && pnpm install --frozen-lockfile && BASE_PATH=/ pnpm --filter @workspace/social-poster run build
     staticPublishPath: ./artifacts/social-poster/dist/public
