@@ -1,0 +1,75 @@
+name: Extract ZIP to Repository Root
+
+on:
+  push:
+    paths:
+      - '**.zip'
+
+jobs:
+  extract-zip:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find and extract ZIP files
+        run: |
+          ZIP_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep '\.zip$' || true)
+
+          if [ -z "$ZIP_FILES" ]; then
+            echo "No ZIP files found in this push."
+            exit 0
+          fi
+
+          for ZIP in $ZIP_FILES; do
+            if [ -f "$ZIP" ]; then
+              echo "Extracting: $ZIP"
+
+              # Extract to a temp directory
+              TEMP_DIR=$(mktemp -d)
+              unzip -o "$ZIP" -d "$TEMP_DIR"
+
+              # Get the single top-level folder inside the zip
+              TOP_LEVEL=$(ls -1 "$TEMP_DIR" | head -n 1)
+
+              # Move contents of that top-level folder to repo root
+              mv "$TEMP_DIR/$TOP_LEVEL"/* .
+              mv "$TEMP_DIR/$TOP_LEVEL"/.[!.]* . 2>/dev/null || true
+
+              # Cleanup temp
+              rm -rf "$TEMP_DIR"
+
+              echo "Done extracting $ZIP"
+            else
+              echo "ZIP file not found (may have been deleted): $ZIP"
+            fi
+          done
+
+      - name: Remove ZIP files after extraction
+        run: |
+          ZIP_FILES=$(git diff --name-only ${{ github.event.before }} ${{ github.sha }} | grep '\.zip$' || true)
+          for ZIP in $ZIP_FILES; do
+            if [ -f "$ZIP" ]; then
+              rm -f "$ZIP"
+              echo "Removed: $ZIP"
+            fi
+          done
+
+      - name: Commit extracted files
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "Nothing to commit — no new files after extraction."
+          else
+            git commit -m "chore: extract uploaded ZIP files to repository root [skip ci]"
+            git push
+          fi
