@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "UShàre Social Poster"
+version = "1.0.0"
+id = "artifacts/social-poster"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 21088
+
+[services.development]
+run = "pnpm --filter @workspace/social-poster run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/social-poster", "run", "build" ]
+publicDir = "artifacts/social-poster/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "21088"
+BASE_PATH = "/"
